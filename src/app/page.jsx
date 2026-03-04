@@ -2,93 +2,110 @@
 
 import { useEffect, useState } from "react";
 import { socket } from "../socket";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const [isConnected, setIsConnected] = useState(false);
-  const [transport, setTransport] = useState("N/A");
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
+  const router = useRouter();
+
+  const [roomName, setRoomName] = useState("");
+  const [roomUserLimit, setRoomUserLimit] = useState(10);
+  const [rooms, setRooms] = useState([]);
 
   useEffect(() => {
-    if(socket.connected) {
-      onConnect();
+    if (!socket.connected) {
+      socket.auth = { username: "anonimo" };
+      socket.connect();
     }
+    
+    socket.on("chat:listRooms", (rooms) => {
+      setRooms(rooms);
+    });
 
-    function onConnect(){
-      setIsConnected(true);
-      setTransport(socket.io.engine.transport.name);
+    socket.on("chat:newRoom", (room) => {
+      setRooms((prev) => [...prev, room]);
+    });
 
-      socket.io.engine.on("upgrade", (transport) => {
-        setTransport(transport.name);
-      });
-    }
-
-    function onDisconnect(){
-      setIsConnected(false);
-      setTransport("N/A");
-    }
-
-    function onNewMessage(data) {
-      const {from, text, timestamp} = data;
-      setMessages(prev => [...prev, {from, text, timestamp}]);
-    }
-
-    function onPong(){
-      console.log("pong received");
-    }
-
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-    socket.on("newMessage", onNewMessage);
-
-    socket.on("pong", onPong);
+    socket.on("chat:removeRoom", ({ roomId }) => {
+      setRooms((prev) => prev.filter(r => r.roomId !== roomId));
+    });
 
     return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("newMessage", onNewMessage);
-      socket.off("pong", onPong);
-    };
-
-  }, [])
-
-  const enviarMensagem = () => {
-    if(message.trim() !== "") {
-      socket.emit("sendMessage", message);
-      setMessage("");
+      socket.off("chat:listRooms");
+      socket.off("chat:newRoom");
+      socket.off("chat:removeRoom");
+      socket.off("chat:error");
     }
-  };
+  }, []);
+
+  function handleJoinRoom(roomId) {
+    router.push(`/chat/${roomId}`);
+  }
+
+  function handleCreateRoom() {
+    if (!roomName.trim()) return;
+
+    let roomId = roomName.toLowerCase().replace(/\s/g, "-") + "-" + Math.random().toString(36).substr(2, 5);
+
+    socket.emit("chat:create", {
+      roomId,
+      roomName,
+      roomUserLimit
+    });
+
+    setRoomName("");
+    setRoomUserLimit(10);
+
+    router.push(`/chat/${roomId}`);
+  }
 
   return (
     <div className="h-screen p-4 flex flex-col gap-4 items-center justify-center">
-      <div className="bg-neutral-800 p-4 rounded-2xl w-11/12 h-10/12 md:w-6/12 md:h-4/5 flex flex-col gap-4">
-        <h1 className="text-3xl font-bold text-center">Webchat</h1>
-        <div id="messages" className="flex-1 overflow-y-auto bg-neutral-900 p-4 rounded-lg">
-          {messages.map((msg, index) => {
-            const isMe = msg.from === socket.id;
-
-            return (
-              <div key={index} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                <div className={`p-2 rounded-lg ${isMe ? "rounded-tr-none bg-cyan-800" : "rounded-tl-none bg-neutral-700"} mb-2 text-white w-fit`}>
-                  {msg.text}
-                </div>
+        <div>
+          <h1 className="text-3xl font-bold mb-4">Digite o nome da sala</h1>
+          <div>
+            {rooms.length > 0 && (
+              <div className="mb-4">
+                <h2 className="text-xl font-bold mb-2">Salas disponíveis</h2>
+                <ul className="list-disc list-inside">
+                  {rooms.map((room) => (
+                    <li key={room.roomId}>
+                      <button
+                        onClick={() => handleJoinRoom(room.roomId)}
+                        className="text-blue-500 hover:underline"
+                      >
+                        {room.roomName} ({room.users.length}/{room.roomUserLimit})
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            )
-          })}
+            )}
+          </div>
+          <div>
+            <input 
+              type="text"
+              value={roomName}
+              placeholder="Digite o nome da sala"
+              onChange={(e) => setRoomName(e.target.value)}
+              className="p-2 rounded-lg bg-neutral-700 text-white"
+            />
+            <input 
+              type="number"
+              value={roomUserLimit}
+              placeholder="Digite o limite de usuários"
+              onChange={(e) => setRoomUserLimit(parseInt(e.target.value))}
+              max={15}
+              min={2}
+              className="p-2 rounded-lg bg-neutral-700 text-white"
+            />
+            <button
+              onClick={handleCreateRoom}
+              className="p-2 rounded-lg bg-cyan-800 text-white font-bold ml-2"
+            >
+              Entrar
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <input 
-            type="text" 
-            value={message}
-            placeholder="Digite sua mensagem..."
-            className="flex-1 p-2 rounded-lg bg-neutral-700 text-white" 
-            onChange={(e) => {
-              setMessage(e.target.value);
-            }}
-          />
-          <button onClick={enviarMensagem} className="p-2 rounded-lg bg-cyan-800 text-white font-bold">Enviar</button>
-        </div>
-      </div>
     </div>
   );
 }
