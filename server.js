@@ -61,9 +61,9 @@ app.prepare().then(() => {
       if (!room) return;
 
       // melhorar essa validação porque não está funcionando direito
-      if (room.users.length >= room.roomUserLimit) {
-        return next(new Error("room_full"));
-      }
+      // if (room.users.length >= room.roomUserLimit) {
+      //   return next(new Error("room_full"));
+      // }
 
       socket.join(roomId);
 
