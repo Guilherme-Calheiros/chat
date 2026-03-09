@@ -26,7 +26,7 @@ export default function ChatRoom() {
     }, [roomId]);
 
     return (
-        <div className="h-screen flex items-center justify-center">
+        <div className="h-screen flex items-center justify-center bg-gray-950">
             <Chat socket={socket} messages={messages} roomId={roomId} />
         </div>
     );

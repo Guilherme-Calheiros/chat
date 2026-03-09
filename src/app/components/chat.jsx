@@ -23,9 +23,9 @@ export default function Chat({socket, messages, roomId}) {
     }, [messages]);
 
     return (
-        <div className="bg-neutral-800 p-4 rounded-2xl w-11/12 h-10/12 md:w-6/12 md:h-4/5 flex flex-col gap-4">
+        <div className="bg-gray-800 p-4 rounded-2xl w-11/12 h-10/12 md:w-6/12 md:h-4/5 flex flex-col gap-4">
             <h1 className="text-3xl font-bold text-center">Webchat</h1>
-            <div id="messages" className="flex-1 overflow-y-auto bg-neutral-900 p-4 rounded-lg">
+            <div id="messages" className="flex-1 overflow-y-auto bg-gray-900 p-4 rounded-lg">
                 {messages.map((msg, index) => {
                     if (msg.from === "system") {
                         return (
@@ -38,7 +38,7 @@ export default function Chat({socket, messages, roomId}) {
 
                     return (
                         <div key={index} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                        <div className={`p-2 rounded-lg flex flex-col ${isMe ? "rounded-tr-none bg-cyan-800" : "rounded-tl-none bg-neutral-700"} mb-2 text-white w-fit`}>
+                        <div className={`p-2 rounded-lg flex flex-col ${isMe ? "rounded-tr-none bg-cyan-800" : "rounded-tl-none bg-gray-700"} mb-2 text-white w-fit`}>
                             <span className="text-xs text-neutral-400 mr-2">{isMe ? "Você" : msg.from}</span>
                             <p>{msg.text}</p>
                         </div>
@@ -64,7 +64,7 @@ export default function Chat({socket, messages, roomId}) {
                         }
                     }}
                     placeholder="Digite sua mensagem..."
-                    className="flex-1 min-w-0 p-2 rounded-lg bg-neutral-700 text-white resize-none overflow-hidden"
+                    className="flex-1 min-w-0 p-2 rounded-lg bg-gray-700 text-white resize-none overflow-hidden"
                     rows={1}
                 />
                 <button 
