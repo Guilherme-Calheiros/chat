@@ -10,25 +10,25 @@ let rooms = new Map();
 
 app.prepare().then(() => {
   const httpServer = createServer(handler);
-  const io = new Server(httpServer, {
-    connectionStateRecovery: {
-      maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutos
-      skipMiddlewares: true,
-    },
-  });
+  const io = new Server(httpServer);
 
   io.use((socket, next) => {
-    const username = socket.handshake.auth.username;
-    if (!username) {
-      return next(new Error("invalid_username"));
+    const { username, userID} = socket.handshake.auth;
+    if (!username || !userID) {
+      return next(new Error("invalid_user"));
     }
     socket.username = username;
+    socket.userID = userID;
     next();
   });
 
   io.on('connection', (socket) => {
 
     socket.emit("chat:listRooms", Array.from(rooms.values()));
+
+    socket.onAny((event, ...args) => {
+      console.log(event, args);
+    });
 
     socket.on("chat:create", (data) => {
       const { roomId, roomName, roomUserLimit } = data;
@@ -40,8 +40,9 @@ app.prepare().then(() => {
         roomId,
         roomName,
         roomUserLimit: roomUserLimit || 10,
-        roomOwner: socket.username,
-        users: []
+        roomOwner: socket.userID,
+        users: [],
+        messages: []
       }
 
       rooms.set(roomId, newRoom);
@@ -50,7 +51,7 @@ app.prepare().then(() => {
 
     socket.on("chat:delete", async ({ roomId }) => {
       const room = rooms.get(roomId);
-      if (room && room.roomOwner === socket.username) {
+      if (room && room.roomOwner === socket.userID) {
         rooms.delete(roomId);
         io.emit("chat:removeRoom", { roomId });
       }
@@ -60,12 +61,9 @@ app.prepare().then(() => {
       const room = rooms.get(roomId);
       if (!room) return;
 
-      // melhorar essa validação porque não está funcionando direito
-      // if (room.users.length >= room.roomUserLimit) {
-      //   return next(new Error("room_full"));
-      // }
-
       socket.join(roomId);
+
+      socket.emit("chat:history", room.messages);
 
       const systemMessage = { 
         socketId: socket.id,
@@ -75,14 +73,21 @@ app.prepare().then(() => {
         system: true
       };
 
-      const alreadyInRoom = room.users.some(u => u.userID === socket.id);
-      if (alreadyInRoom) return;
+      const existingUser = room.users.find(u => u.userID === socket.userID);
 
-      room.users.push({ userID: socket.id, username: socket.username });
+      if (!existingUser) {
+        room.users.push({
+          userID: socket.userID,
+          username: socket.username
+        });
 
-      socket.to(roomId).emit("chat:newMessage", systemMessage);
+        socket.to(roomId).emit("chat:newMessage", systemMessage);
+      }
+
+      socket.emit("chat:users", room.users);
+      socket.to(roomId).emit("chat:users", room.users);
+
       io.emit("chat:listRooms", Array.from(rooms.values()));
-      io.to(roomId).emit("chat:users", room.users);
     });
 
     socket.on("chat:leave", async ({ roomId }) => {
@@ -91,7 +96,7 @@ app.prepare().then(() => {
 
       socket.leave(roomId);
 
-      room.users = room.users.filter(u => u.userID !== socket.id);
+      room.users = room.users.filter(u => u.userID !== socket.userID);
 
       const systemMessage = { 
         socketId: socket.id,
@@ -113,26 +118,32 @@ app.prepare().then(() => {
       const room = rooms.get(roomId);
       if (!room) return;
 
-      const isUserInRoom = room.users.some(u => u.userID === socket.id);
+      const isUserInRoom = room.users.some(u => u.userID === socket.userID);
       if (!isUserInRoom) return;
 
       const message = {
         socketId: socket.id,
+        userID: socket.userID,
         from: socket.username,
         text,
         timestamp: new Date().toISOString()
       };
+
+      room.messages.push(message);
+      if (room.messages.length > 100) {
+        room.messages.shift();
+      }
 
       io.to(roomId).emit("chat:newMessage", message);
     });
 
     socket.on("disconnect", async () => {
       for (const room of rooms.values()) {
-        const wasInRoom = room.users.some(u => u.userID === socket.id);
+        const wasInRoom = room.users.some(u => u.userID === socket.userID);
 
         if (!wasInRoom) continue;
 
-        room.users = room.users.filter(u => u.userID !== socket.id);
+        room.users = room.users.filter(u => u.userID !== socket.userID);
 
         const systemMessage = {
           socketId: socket.id,

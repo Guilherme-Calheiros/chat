@@ -22,6 +22,9 @@ export default function Chat({socket, messages, roomId}) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
+    console.log(messages)
+    console.log(socket)
+
     return (
         <div className="bg-gray-800 p-4 rounded-2xl w-11/12 h-10/12 md:w-6/12 md:h-4/5 flex flex-col gap-4">
             <h1 className="text-3xl font-bold text-center">Webchat</h1>
@@ -34,7 +37,7 @@ export default function Chat({socket, messages, roomId}) {
                         </div>
                         );
                     }
-                    const isMe = msg.socketId === socket.id;
+                    const isMe = msg.userID === socket.auth.userID;
 
                     return (
                         <div key={index} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>

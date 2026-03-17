@@ -35,6 +35,7 @@ export default function Home() {
   function handleDisconnect(){
     socket.disconnect()
     setUsername('')
+    localStorage.removeItem("chat_username");
   }
 
   function handleModal(){

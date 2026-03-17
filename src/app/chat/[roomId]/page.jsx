@@ -19,6 +19,10 @@ export default function ChatRoom() {
         const handler = (msg) => setMessages((prev) => [...prev, msg]);
         socket.on("chat:newMessage", handler);
 
+        socket.on("chat:history", (messages) => {
+            setMessages(messages);
+        });
+
         return () => {
             socket.off("chat:newMessage", handler);
             setMessages([]);
