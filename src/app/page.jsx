@@ -20,16 +20,22 @@ export default function Home() {
     socket.on("chat:removeRoom", ({ roomId }) => {
       setRooms((prev) => prev.filter(r => r.roomId !== roomId));
     });
+    socket.on("chat:error", ({ message }) => alert(message));
+    socket.on("chat:allowed", ({ roomId }) => {
+      router.push(`/chat/${roomId}`);
+    });
 
     return () => {
       socket.off("chat:listRooms");
       socket.off("chat:newRoom");
       socket.off("chat:removeRoom");
+      socket.off("chat:error");
+      socket.off("chat:allowed");
     }
   }, []);
 
   function handleJoinRoom(roomId) {
-    router.push(`/chat/${roomId}`);
+    socket.emit("chat:checkRoom", { roomId})
   }
 
   function handleDisconnect(){

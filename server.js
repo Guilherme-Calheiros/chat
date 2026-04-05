@@ -57,6 +57,21 @@ app.prepare().then(() => {
       }
     });
 
+    socket.on("chat:checkRoom", ({ roomId }) => {
+      const room = rooms.get(roomId);
+      if (!room) {
+        socket.emit("chat:error", { message: "Sala não encontrada" });
+        return;
+      }
+
+      if (room.users.length >= room.roomUserLimit) {
+        socket.emit("chat:error", { message: "Sala cheia" });
+        return;
+      }
+      
+      socket.emit("chat:allowed", { roomId });
+    });
+
     socket.on("chat:join", async ({ roomId }) => {
       const room = rooms.get(roomId);
       if (!room) return;
