@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 
 export default function ModalCreateRoom({ socket, handleCancel }) {
   const [roomName, setRoomName] = useState("");
-  const [roomLimit, setRoomLimit] = useState(10);
+  const [roomUserLimit, setRoomUserLimit] = useState(10);
+  const [isPrivate, setIsPrivate] = useState(false);
 
   const router = useRouter()
 
@@ -17,11 +18,12 @@ export default function ModalCreateRoom({ socket, handleCancel }) {
     socket.emit("chat:create", {
       roomId,
       roomName,
-      roomLimit
+      roomUserLimit,
+      isPrivate
     });
 
     setRoomName("");
-    setRoomLimit(10);
+    setRoomUserLimit(10);
 
     router.push(`/chat/${roomId}`);
   }
@@ -43,12 +45,22 @@ export default function ModalCreateRoom({ socket, handleCancel }) {
 
           <input
             type="number"
-            value={roomLimit}
-            onChange={(e) => setRoomLimit(parseInt(e.target.value))}
+            value={roomUserLimit}
+            onChange={(e) => setRoomUserLimit(parseInt(e.target.value))}
             max={15}
             min={2}
             className="p-2 rounded-lg bg-neutral-800 border border-gray-700 text-white"
           />
+
+          <label className="flex items-center gap-2 text-white">
+            <input
+              type="checkbox"
+              checked={isPrivate}
+              onChange={(e) => setIsPrivate(e.target.checked)}
+              className="form-checkbox h-5 w-5 text-cyan-600 bg-gray-800 border-gray-700 rounded focus:ring-cyan-500"
+            />
+            Sala privada
+          </label>
 
           <div className="flex justify-end gap-2 mt-2">
             <button

@@ -6,19 +6,19 @@ import UserForm from "./components/userform";
 import ModalCreateRoom from "./components/modalcreateroom";
 import { useRouter } from "next/navigation";
 import { useUsername } from "./context/UsernameProvider";
+import { useRooms } from "./context/RoomProvider";
 
 export default function Home() {
-  const [rooms, setRooms] = useState([]);
+  const { rooms, setRooms } = useRooms();
   const { username, setUsername } = useUsername();
   const [modalCreateRoom, setModalCreateRoom] = useState(false)
 
   const router = useRouter()
 
   useEffect(() => {
-    socket.on("chat:listRooms", (rooms) => setRooms(rooms));
-    socket.on("chat:newRoom", (room) => setRooms((prev) => [...prev, room]));
-    socket.on("chat:removeRoom", ({ roomId }) => {
-      setRooms((prev) => prev.filter(r => r.roomId !== roomId));
+    socket.on("chat:listRooms", (rooms) => {
+      console.log("Recebendo lista de salas:", rooms);
+      setRooms(rooms);
     });
     socket.on("chat:error", ({ message }) => alert(message));
     socket.on("chat:allowed", ({ roomId }) => {
@@ -35,8 +35,10 @@ export default function Home() {
   }, []);
 
   function handleJoinRoom(roomId) {
-    socket.emit("chat:checkRoom", { roomId})
+    socket.emit("chat:checkRoom", { roomId });
   }
+  
+  console.log(rooms)
 
   function handleDisconnect(){
     socket.disconnect()
@@ -51,6 +53,8 @@ export default function Home() {
     }
     setModalCreateRoom(true)
   }
+
+  const visibleRooms = rooms.filter(room => room.users.length > 0);
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
@@ -77,9 +81,9 @@ export default function Home() {
                   <ModalCreateRoom handleCancel={() => setModalCreateRoom(false)} socket={socket}/>
                 )}
                 <hr className="border-gray-800 my-6" />
-                {rooms.length > 0 ? (
+                {visibleRooms.length > 0 ? (
                   <ul className="flex flex-col gap-2">
-                    {rooms.map((room) => {
+                    {visibleRooms.map((room) => {
                       const ratio = room.users.length / room.roomUserLimit;
                       const isFull = ratio >= 1;
 

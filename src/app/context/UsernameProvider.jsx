@@ -13,7 +13,7 @@ export function UsernameProvider({ children }) {
     return null;
   });
 
-  const [userID] = useState(() => {
+  const [userId] = useState(() => {
     if (typeof window !== "undefined") {
       let id = localStorage.getItem("chat_user_id");
       if (!id) {
@@ -32,7 +32,7 @@ export function UsernameProvider({ children }) {
 
     socket.auth = {
       username,
-      userID
+      userId
     };
     if (!socket.connected) {
       socket.connect();
