@@ -242,6 +242,15 @@ app.prepare().then(() => {
       });
     });
 
+    socket.on("chat:changeRoomOwner", ({ roomId, newOwnerId }) => {
+      const room = rooms.get(roomId);
+      if (!room) return;
+      if (room.roomOwner !== socket.userId) return;
+
+      room.roomOwner = newOwnerId;
+      io.to(roomId).emit("chat:users", {users: room.users, roomOwner: room.roomOwner});
+    });
+
   });
 
   httpServer.listen(3000, () => {

@@ -97,6 +97,10 @@ export default function Chat({socket, messages, roomId, users, roomOwner}) {
         socket.emit("chat:kick", { roomId, userId });
     }
 
+    function handleChangeOwner(newOwnerId) {
+        socket.emit("chat:changeRoomOwner", { roomId, newOwnerId });
+    }
+
     console.log(messages)
     console.log(socket)
 
@@ -133,6 +137,12 @@ export default function Chat({socket, messages, roomId, users, roomOwner}) {
                                                         onClick={() => handleKick(user.userId)}
                                                     >
                                                         Expulsar
+                                                    </button>
+                                                    <button
+                                                        className="block w-full text-left p-2 text-gray-300 hover:bg-gray-600"
+                                                        onClick={() => handleChangeOwner(user.userId)}
+                                                    >
+                                                        Tornar proprietário
                                                     </button>
                                                 </div>
                                             )}
